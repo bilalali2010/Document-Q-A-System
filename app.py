@@ -8,12 +8,12 @@ from sql_generator import run_sql_generator
 st.set_page_config(page_title="DocuChat AI — Tools Hub", layout="wide")
 st.title("DocuChat AI — LangChain & OpenRouter Agents Hub")
 
-# Check for API key
+# Ensure API key is set
 if not (os.getenv("OPENROUTER_API_KEY") or st.secrets.get("OPENROUTER_API_KEY", None)):
     st.error("Please set OPENROUTER_API_KEY in Streamlit secrets or environment before running.")
     st.stop()
 
-# Initialize LLM
+# Initialize OpenRouter LLM
 llm = get_openrouter_llm()
 
 st.sidebar.title("Tools")
@@ -29,9 +29,9 @@ else:
     st.header("About DocuChat AI")
     st.write("""
     DocuChat AI includes:
-    - Document Q&A & Chat (PDF/DOCX/TXT, embeddings, retrieval, OpenRouter LLM)
-    - Research Assistant (web search + OpenRouter summarization)
-    - SQL Query Generator (natural language to SELECT SQL, read-only)
+    - Document Q&A & Chat (PDF/DOCX/TXT, embeddings, FAISS, OpenRouter LLM)
+    - Research Assistant (DuckDuckGo + OpenRouter summarization)
+    - SQL Query Generator (NL → SELECT SQL, read-only)
     
-    Make sure `OPENROUTER_API_KEY` is set in your Streamlit secrets.
+    Make sure OPENROUTER_API_KEY is set in your Streamlit secrets.
     """)
