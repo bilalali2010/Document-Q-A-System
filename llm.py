@@ -1,9 +1,9 @@
 import os
-from langchain.chat_models import ChatOpenAI  # updated import for latest LangChain
+from langchain.llms import OpenAI  # works with OpenRouter API key
 
 def get_openrouter_llm(model_name: str | None = None, temperature: float = 0.0):
     """
-    Returns a LangChain ChatOpenAI LLM configured to use OpenRouter API.
+    Returns a LangChain LLM that points to OpenRouter using OPENROUTER_API_KEY.
     """
     router_key = os.getenv("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_API_KEY")
     if not router_key:
@@ -14,5 +14,5 @@ def get_openrouter_llm(model_name: str | None = None, temperature: float = 0.0):
 
     model = model_name or os.getenv("OPENAI_MODEL") or "x-ai/grok-4.1-fast:free"
 
-    llm = ChatOpenAI(model_name=model, temperature=temperature)
+    llm = OpenAI(model_name=model, temperature=temperature)
     return llm
