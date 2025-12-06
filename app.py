@@ -25,33 +25,43 @@ if uploaded_file:
     st.success("✅ Document processed! You can now ask questions.")
 
 # -------------------------
-# Ask questions
+# Placeholder for chat messages
 # -------------------------
-if st.session_state.vectorstore:
-    question = st.text_input("Ask a question about the document:")
+chat_placeholder = st.empty()
 
-    if question:
-        with st.spinner("🤖 Thinking..."):
-            # Retrieve relevant chunks
-            retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
-            docs = retriever.get_relevant_documents(question)
-            context = "\n\n".join([d.page_content for d in docs])
+def render_chat():
+    with chat_placeholder.container():
+        for msg in st.session_state.history:
+            if msg["role"] == "user":
+                st.markdown(f"👤 **You:** {msg['content']}")
+            elif msg["role"] == "assistant":
+                st.markdown(f"🤖 **AI:** {msg['content']}")
 
-            # Ask AI to generate answer
-            answer = answer_question(context, question)
-
-            # Update chat history
-            st.session_state.history.append({"role": "user", "content": question})
-            st.session_state.history.append({"role": "assistant", "content": answer})
+# Render chat first
+render_chat()
 
 # -------------------------
-# Render chat history
+# Input form at the bottom
 # -------------------------
-if st.session_state.history:
-    st.write("---")
-    st.write("### Chat History")
-    for msg in st.session_state.history:
-        if msg["role"] == "user":
-            st.markdown(f"👤 **You:** {msg['content']}")
-        elif msg["role"] == "assistant":
-            st.markdown(f"🤖 **AI:** {msg['content']}")
+with st.form("chat_input", clear_on_submit=True):
+    user_msg = st.text_area("Type your question here...", height=60)
+    send_btn = st.form_submit_button("Send")
+
+    if send_btn and user_msg.strip():
+        if not st.session_state.vectorstore:
+            st.warning("❌ Please upload and process a document first.")
+        else:
+            # Add user message
+            st.session_state.history.append({"role": "user", "content": user_msg.strip()})
+            render_chat()
+
+            # Retrieve relevant chunks and ask AI
+            with st.spinner("🤖 Thinking..."):
+                retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
+                docs = retriever.get_relevant_documents(user_msg.strip())
+                context = "\n\n".join([d.page_content for d in docs])
+
+                answer = answer_question(context, user_msg.strip())
+                st.session_state.history.append({"role": "assistant", "content": answer})
+
+            render_chat()
