@@ -3,31 +3,28 @@ from llm import get_llm
 from doc_chat import load_document, build_vectorstore
 
 st.set_page_config(page_title="DocuChat AI", layout="wide")
+st.title("📄 DocuChat AI — OpenRouter Edition")
+st.write("Upload a document and ask questions about it.")
 
-st.title("📄 DocuChat AI")
-st.write("Upload a document and chat with it using OpenRouter models.")
-
-uploaded_file = st.file_uploader("Upload PDF or TEXT", type=["pdf", "txt"])
+uploaded_file = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"])
 
 if uploaded_file:
-    with st.spinner("Reading & indexing document..."):
+    with st.spinner("Processing document..."):
         text = load_document(uploaded_file)
         vectorstore = build_vectorstore(text)
         retriever = vectorstore.as_retriever()
+    st.success("Document ready!")
 
-    st.success("Document processed!")
-
-    question = st.text_input("Ask something about your document:")
+    question = st.text_input("Ask something about the document:")
 
     if question:
         llm = get_llm()
-
         docs = retriever.get_relevant_documents(question)
         context = "\n\n".join(d.page_content for d in docs)
 
         prompt = f"""
-Use ONLY the context below to answer.
-If the answer is not in the document, reply "Not found in the document."
+Use ONLY the context below to answer the question.
+If the answer is not in the document, say "Not found in the document."
 
 Context:
 {context}
@@ -35,8 +32,6 @@ Context:
 Question:
 {question}
 """
-
         response = llm.invoke(prompt)
-
         st.write("### Answer:")
         st.write(response.content)
