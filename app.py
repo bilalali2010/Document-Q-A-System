@@ -27,7 +27,7 @@ if uploaded_file:
 
         prompt = f"""
 Use ONLY the context below to answer.
-If answer is not in the document, reply "Not found in the document."
+If the answer is not in the document, reply "Not found in the document."
 
 Context:
 {context}
