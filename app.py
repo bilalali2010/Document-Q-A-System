@@ -1,37 +1,56 @@
 import streamlit as st
-from llm import get_llm
 from doc_chat import load_document, build_vectorstore
 
-st.set_page_config(page_title="DocuChat AI", layout="wide")
-st.title("📄 DocuChat AI — OpenRouter Edition")
-st.write("Upload a document and ask questions about it.")
+st.set_page_config(page_title="Document-Q-A-System", layout="wide")
+st.title("📄 Document Q&A System")
+st.write("Upload a PDF or TXT file and ask questions about it.")
 
+# -------------------------
+# Session state for vectorstore and chat
+# -------------------------
+if "vectorstore" not in st.session_state:
+    st.session_state.vectorstore = None
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# -------------------------
+# Upload document
+# -------------------------
 uploaded_file = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"])
-
 if uploaded_file:
     with st.spinner("Processing document..."):
         text = load_document(uploaded_file)
-        vectorstore = build_vectorstore(text)
-        retriever = vectorstore.as_retriever()
-    st.success("Document ready!")
+        st.session_state.vectorstore = build_vectorstore(text)
+    st.success("✅ Document processed! You can now ask questions.")
 
-    question = st.text_input("Ask something about the document:")
+# -------------------------
+# Ask questions
+# -------------------------
+if st.session_state.vectorstore:
+    question = st.text_input("Ask a question about the document:")
 
     if question:
-        llm = get_llm()
+        # Retrieve relevant chunks
+        retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
         docs = retriever.get_relevant_documents(question)
-        context = "\n\n".join(d.page_content for d in docs)
+        context = "\n\n".join([d.page_content for d in docs])
 
-        prompt = f"""
-Use ONLY the context below to answer the question.
-If the answer is not in the document, say "Not found in the document."
+        # Store chat history
+        st.session_state.history.append({"role": "user", "content": question})
 
-Context:
-{context}
+        # Simple LLM simulation (replace with your AI call if needed)
+        answer = f"Context retrieved from document:\n{context[:1000]}..."  # Truncate for display
+        st.session_state.history.append({"role": "assistant", "content": answer})
 
-Question:
-{question}
-"""
-        response = llm.invoke(prompt)
-        st.write("### Answer:")
-        st.write(response.content)
+# -------------------------
+# Render chat history
+# -------------------------
+if st.session_state.history:
+    st.write("---")
+    st.write("### Chat History")
+    for msg in st.session_state.history:
+        if msg["role"] == "user":
+            st.markdown(f"👤 **You:** {msg['content']}")
+        elif msg["role"] == "assistant":
+            st.markdown(f"🤖 **AI:** {msg['content']}")
