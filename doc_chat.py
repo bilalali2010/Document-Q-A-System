@@ -1,13 +1,33 @@
 import os
+import requests
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings.base import Embeddings
+
+class OpenRouterEmbeddings(Embeddings):
+    """Embeddings wrapper for OpenRouter API."""
+    def __init__(self, model="text-embedding-3-small", api_key=None, base_url=None):
+        self.model = model
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.base_url = base_url or os.getenv("OPENROUTER_API_BASE") or "https://api.openrouter.ai/v1"
+
+    def embed_documents(self, texts):
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        url = f"{self.base_url}/embeddings"
+        data = {
+            "model": self.model,
+            "input": texts
+        }
+        response = requests.post(url, json=data, headers=headers, timeout=60)
+        response.raise_for_status()
+        return [item["embedding"] for item in response.json()["data"]]
+
+    def embed_query(self, text):
+        return self.embed_documents([text])[0]
+
 
 def load_document(file):
-    """
-    Load text from PDF or TXT file.
-    """
     if file.type == "application/pdf":
         pdf = PdfReader(file)
         text = ""
@@ -16,26 +36,19 @@ def load_document(file):
             if extracted:
                 text += extracted + "\n"
         return text.strip()
-    # For TXT files
     return file.read().decode("utf-8").strip()
 
 
 def build_vectorstore(text):
-    """
-    Split the document text into chunks and create a FAISS vector store
-    using OpenRouter-compatible embeddings.
-    """
-    # 1️⃣ Split text into manageable chunks
+    # Split text
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_text(text)
 
-    # 2️⃣ Create embeddings using OpenRouter
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url=os.getenv("OPENROUTER_API_BASE") or "https://api.openrouter.ai/v1"
+    # Use OpenRouter embeddings directly
+    embeddings = OpenRouterEmbeddings(
+        model="text-embedding-3-small"
     )
 
-    # 3️⃣ Build FAISS vector store
+    # Build FAISS
     vectorstore = FAISS.from_texts(chunks, embeddings)
     return vectorstore
