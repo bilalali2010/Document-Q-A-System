@@ -1,10 +1,6 @@
 streamlit>=1.20
 langchain==0.1.13
 langchain-community
-langchain-openai
 faiss-cpu
-openai
-tiktoken
 pypdf
-duckduckgo-search
-pandas
+sentence-transformers
