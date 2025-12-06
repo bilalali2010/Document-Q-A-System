@@ -13,8 +13,6 @@ def load_document(file):
             if extracted:
                 text += extracted + "\n"
         return text.strip()
-    
-    # TXT or other text files
     return file.read().decode("utf-8").strip()
 
 
@@ -22,10 +20,11 @@ def build_vectorstore(text):
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_text(text)
 
+    # 👈 Updated embeddings to use OpenRouter
     embeddings = OpenAIEmbeddings(
         model="text-embedding-3-small",
-        openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1",
+        openai_api_key=os.getenv("OPENROUTER_API_KEY"),  # Your OpenRouter key
+        base_url=os.getenv("OPENROUTER_API_BASE") or "https://api.openrouter.ai/v1",  # Point to OpenRouter
     )
 
     vectorstore = FAISS.from_texts(chunks, embeddings)
