@@ -6,3 +6,5 @@ faiss-cpu
 openai
 tiktoken
 pypdf
+duckduckgo-search
+pandas
