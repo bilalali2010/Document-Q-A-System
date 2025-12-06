@@ -1,35 +1,42 @@
-import os
 import streamlit as st
-from llm import get_openrouter_llm
-from doc_chat import run_doc_chat
-from research_agent import run_research_agent
-from sql_generator import run_sql_generator
+from llm import get_llm
+from doc_chat import load_document, build_vectorstore
 
-st.set_page_config(page_title="DocuChat AI — Tools Hub", layout="wide")
-st.title("DocuChat AI — LangChain & OpenRouter Agents Hub")
+st.set_page_config(page_title="DocuChat AI", layout="wide")
 
-if not (os.getenv("OPENROUTER_API_KEY") or st.secrets.get("OPENROUTER_API_KEY", None)):
-    st.error("Please set OPENROUTER_API_KEY in Streamlit secrets or environment before running.")
-    st.stop()
+st.title("📄 DocuChat AI")
+st.write("Upload a document and chat with it using OpenRouter models.")
 
-llm = get_openrouter_llm()
+uploaded_file = st.file_uploader("Upload PDF or TEXT", type=["pdf", "txt"])
 
-st.sidebar.title("Tools")
-tool = st.sidebar.radio("Choose a tool", ["Document Q&A / Chat", "Research Assistant", "SQL Query Generator", "About"])
+if uploaded_file:
+    with st.spinner("Reading & indexing document..."):
+        text = load_document(uploaded_file)
+        vectorstore = build_vectorstore(text)
+        retriever = vectorstore.as_retriever()
 
-if tool == "Document Q&A / Chat":
-    run_doc_chat(llm)
-elif tool == "Research Assistant":
-    run_research_agent(llm)
-elif tool == "SQL Query Generator":
-    run_sql_generator(llm)
-else:
-    st.header("About DocuChat AI")
-    st.write("""
-    DocuChat AI includes:
-    - Document Q&A & Chat (PDF/DOCX/TXT, embeddings, Chroma, OpenRouter LLM)
-    - Research Assistant (DuckDuckGo + OpenRouter summarization)
-    - SQL Query Generator (NL → SELECT SQL, read-only)
-    
-    Make sure OPENROUTER_API_KEY is set in Streamlit secrets.
-    """)
+    st.success("Document processed!")
+
+    question = st.text_input("Ask something about your document:")
+
+    if question:
+        llm = get_llm()
+
+        docs = retriever.get_relevant_documents(question)
+        context = "\n\n".join(d.page_content for d in docs)
+
+        prompt = f"""
+Use ONLY the context below to answer.
+If answer is not in the document, reply "Not found in the document."
+
+Context:
+{context}
+
+Question:
+{question}
+"""
+
+        response = llm.invoke(prompt)
+
+        st.write("### Answer:")
+        st.write(response.content)
